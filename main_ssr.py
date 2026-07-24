@@ -386,7 +386,7 @@ async def page_dashboard():
         <div class="value {'green' if xs['running'] else ''}" style="color:{'var(--accent)' if xs['running'] else 'var(--red)'}">
           {'Running' if xs['running'] else 'Stopped'}
         </div>
-        <form method="POST" action="/proxy/restart" style="margin-top:8px;">
+        <form method="GET" action="/proxy/restart" style="margin-top:8px;">
           <button type="submit" class="btn btn-ghost btn-sm">Restart Proxy</button>
         </form>
       </div>
@@ -440,10 +440,10 @@ async def page_users():
           <td>{format_bytes((u.get('traffic_used_gb') or 0)*1024*1024*1024)}</td>
           <td>
             <a href="/users/{u['uuid']}" class="btn btn-ghost btn-sm">View</a>
-            <form method="POST" action="/users/{u['uuid']}/toggle" style="display:inline">
+            <form method="GET" action="/users/{u['uuid']}/toggle" style="display:inline">
               <button type="submit" class="btn btn-ghost btn-sm">{'Disable' if u['active'] else 'Enable'}</button>
             </form>
-            <form method="POST" action="/users/{u['uuid']}/delete" style="display:inline" onsubmit="return confirm('Delete {uname}?')">
+            <form method="GET" action="/users/{u['uuid']}/delete" style="display:inline" onsubmit="return confirm('Delete {uname}?')">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>
             </form>
           </td>
@@ -467,7 +467,7 @@ async def page_new_user():
     content = f"""
     <h2 style="font-size:20px;font-weight:700;margin-bottom:24px;">New User</h2>
     <div class="card" style="max-width:500px;">
-      <form method="POST" action="/users/create">
+      <form method="GET" action="/users/create">
         <div class="form-group">
           <label>Username</label>
           <input type="text" name="username" required placeholder="e.g. user1">
@@ -551,7 +551,7 @@ async def page_settings():
         <span style="color:var(--fg3);font-size:12px;">PID: {xs.get('pid', '—')}</span>
       </div>
       <div style="display:flex;gap:8px;">
-        <form method="POST" action="/proxy/restart"><button type="submit" class="btn btn-primary btn-sm">Restart</button></form>
+        <form method="GET" action="/proxy/restart"><button type="submit" class="btn btn-primary btn-sm">Restart</button></form>
       </div>
     </div>
     <div class="card" style="max-width:500px;margin-bottom:24px;">
@@ -562,17 +562,14 @@ async def page_settings():
     return render_page("Settings", content, "settings")
 
 # ---------------------------------------------------------------------------
-# Routes: Actions (POST)
+# Routes: Actions (GET)
 # ---------------------------------------------------------------------------
-@app.post("/users/create")
-async def action_create_user(request: Request):
-    form = await request.form()
-    username = form.get("username", "").strip()
+@app.get("/users/create")
+async def action_create_user(username: str = "", label: str = "", traffic_limit_gb: float = 0, expiry_days: int = 0):
+    username = username.strip()
     if not username:
-        raise HTTPException(400, "Username required")
-    label = form.get("label", "").strip()
-    traffic_limit = float(form.get("traffic_limit_gb", 0) or 0)
-    expiry_days = int(form.get("expiry_days", 0) or 0)
+        return RedirectResponse("/users/new?error=empty", status_code=302)
+    label = label.strip()
     user_uuid = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     expires_at = (datetime.now(timezone.utc) + timedelta(days=expiry_days)).isoformat() if expiry_days > 0 else None
@@ -580,16 +577,15 @@ async def action_create_user(request: Request):
         try:
             await db.execute(
                 "INSERT INTO users (uuid, username, label, traffic_limit_gb, expiry_days, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (user_uuid, username, label, traffic_limit, expiry_days, now, expires_at)
+                (user_uuid, username, label, traffic_limit_gb, expiry_days, now, expires_at)
             )
             await db.commit()
         except Exception as e:
             return RedirectResponse("/users/new?error=exists", status_code=302)
-    # Update Xray config
     await write_xray_config()
     return RedirectResponse("/users", status_code=302)
 
-@app.post("/users/{user_uuid}/delete")
+@app.get("/users/{user_uuid}/delete")
 async def action_delete_user(user_uuid: str):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("DELETE FROM users WHERE uuid=?", (user_uuid,))
@@ -597,7 +593,7 @@ async def action_delete_user(user_uuid: str):
     await write_xray_config()
     return RedirectResponse("/users", status_code=302)
 
-@app.post("/users/{user_uuid}/toggle")
+@app.get("/users/{user_uuid}/toggle")
 async def action_toggle_user(user_uuid: str):
     async with aiosqlite.connect(DB_PATH) as db:
         cur = await db.execute("SELECT active FROM users WHERE uuid=?", (user_uuid,))
@@ -609,7 +605,7 @@ async def action_toggle_user(user_uuid: str):
     await write_xray_config()
     return RedirectResponse(f"/users/{user_uuid}", status_code=302)
 
-@app.post("/proxy/restart")
+@app.get("/proxy/restart")
 async def action_restart_proxy():
     await restart_xray()
     return RedirectResponse("/", status_code=302)
