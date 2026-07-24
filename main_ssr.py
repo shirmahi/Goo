@@ -514,7 +514,7 @@ async def action_create_user(username: str = "", label: str = "", traffic_limit_
     return RedirectResponse("/users", status_code=302)
 
 @app.get("/users/{user_uuid}", response_class=HTMLResponse)
-async def page_user_detail(user_uuid: str):
+async def page_user_detail(user_uuid: str, request: Request):
     async with aiosqlite.connect(DB_PATH) as db:
         cur = await db.execute("SELECT * FROM users WHERE uuid=?", (user_uuid,))
         cols = [d[0] for d in cur.description]
@@ -525,7 +525,7 @@ async def page_user_detail(user_uuid: str):
     badge = '<span class="badge badge-active"><span class="dot dot-green"></span>Active</span>' if u["active"] else '<span class="badge badge-inactive"><span class="dot dot-red"></span>Inactive</span>'
 
     # Generate share link
-    host = os.environ.get("SHELL_HOST", "localhost")
+    host = request.headers.get("host", "localhost")
     port = "443"
     ws_path = f"{WS_PREFIX}/{_proxy_session_id}"
     sni = host
@@ -612,13 +612,13 @@ async def action_restart_proxy():
 # Routes: API (subscription)
 # ---------------------------------------------------------------------------
 @app.get("/sub/{user_uuid}")
-async def api_subscription(user_uuid: str):
+async def api_subscription(user_uuid: str, request: Request):
     async with aiosqlite.connect(DB_PATH) as db:
         cur = await db.execute("SELECT username FROM users WHERE uuid=?", (user_uuid,))
         row = await cur.fetchone()
     if not row:
         raise HTTPException(404, "User not found")
-    host = os.environ.get("SHELL_HOST", "localhost")
+    host = request.headers.get("host", "localhost")
     port = "443"
     ws_path = f"{WS_PREFIX}/{_proxy_session_id}"
     sni = host
