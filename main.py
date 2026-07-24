@@ -398,6 +398,11 @@ async def panel():
 async def api_ping():
     return {"ok": True, "msg": "pong"}
 
+@app.get("/test", response_class=HTMLResponse)
+async def test_page():
+    test_path = Path(__file__).parent / "frontend" / "test.html"
+    return HTMLResponse(content=test_path.read_text())
+
 
 # ---------------------------------------------------------------------------
 # Routes: Auth

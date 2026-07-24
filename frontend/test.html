@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html><head><title>API Test</title></head>
+<body>
+<h2>API Test Page</h2>
+<div id="results"></div>
+<script>
+const r = document.getElementById('results');
+function test(name, url, opts) {
+  return fetch(url, opts || {})
+    .then(res => {
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('json')) return res.json().then(d => `<p><b>${name}:</b> ${res.status} → ${JSON.stringify(d)}</p>`);
+      return res.text().then(t => `<p><b>${name}:</b> ${res.status} → ${t.substring(0,200)}</p>`);
+    })
+    .catch(e => `<p><b>${name}:</b> ERROR → ${e.message}</p>`);
+}
+
+(async () => {
+  let html = '';
+  html += await test('GET /api/ping', '/api/ping');
+  html += await test('POST /api/login (no body)', '/api/login', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:'admin',password:'admin'})});
+  html += await test('GET /api/stats (no auth)', '/api/stats');
+  r.innerHTML = html;
+})();
+</script>
+</body></html>
