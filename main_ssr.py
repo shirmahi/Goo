@@ -492,6 +492,27 @@ async def page_new_user():
     </div>"""
     return render_page("New User", content, "users")
 
+@app.get("/users/create")
+async def action_create_user(username: str = "", label: str = "", traffic_limit_gb: float = 0, expiry_days: int = 0):
+    username = username.strip()
+    if not username:
+        return RedirectResponse("/users/new?error=empty", status_code=302)
+    label = label.strip()
+    user_uuid = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    expires_at = (datetime.now(timezone.utc) + timedelta(days=expiry_days)).isoformat() if expiry_days > 0 else None
+    async with aiosqlite.connect(DB_PATH) as db:
+        try:
+            await db.execute(
+                "INSERT INTO users (uuid, username, label, traffic_limit_gb, expiry_days, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (user_uuid, username, label, traffic_limit_gb, expiry_days, now, expires_at)
+            )
+            await db.commit()
+        except Exception as e:
+            return RedirectResponse("/users/new?error=exists", status_code=302)
+    await write_xray_config()
+    return RedirectResponse("/users", status_code=302)
+
 @app.get("/users/{user_uuid}", response_class=HTMLResponse)
 async def page_user_detail(user_uuid: str):
     async with aiosqlite.connect(DB_PATH) as db:
@@ -562,29 +583,6 @@ async def page_settings():
     return render_page("Settings", content, "settings")
 
 # ---------------------------------------------------------------------------
-# Routes: Actions (GET)
-# ---------------------------------------------------------------------------
-@app.get("/users/create")
-async def action_create_user(username: str = "", label: str = "", traffic_limit_gb: float = 0, expiry_days: int = 0):
-    username = username.strip()
-    if not username:
-        return RedirectResponse("/users/new?error=empty", status_code=302)
-    label = label.strip()
-    user_uuid = str(uuid.uuid4())
-    now = datetime.now(timezone.utc).isoformat()
-    expires_at = (datetime.now(timezone.utc) + timedelta(days=expiry_days)).isoformat() if expiry_days > 0 else None
-    async with aiosqlite.connect(DB_PATH) as db:
-        try:
-            await db.execute(
-                "INSERT INTO users (uuid, username, label, traffic_limit_gb, expiry_days, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (user_uuid, username, label, traffic_limit_gb, expiry_days, now, expires_at)
-            )
-            await db.commit()
-        except Exception as e:
-            return RedirectResponse("/users/new?error=exists", status_code=302)
-    await write_xray_config()
-    return RedirectResponse("/users", status_code=302)
-
 @app.get("/users/{user_uuid}/delete")
 async def action_delete_user(user_uuid: str):
     async with aiosqlite.connect(DB_PATH) as db:
