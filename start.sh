@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Save script directory BEFORE any cd
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 echo "=== Route Panel - Setup ==="
 
 # Install Python dependencies
@@ -28,5 +31,5 @@ fi
 
 # Start the panel
 echo "[3/3] Starting panel..."
-cd "$(dirname "$0")"
+cd "$SCRIPT_DIR"
 python main.py
