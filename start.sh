@@ -8,7 +8,8 @@ echo "[1/3] Installing dependencies..."
 pip install -q fastapi uvicorn aiosqlite bcrypt httpx 2>/dev/null
 
 # Download routing core if not present
-CORE_BIN="/usr/local/bin/proxy_core"
+CORE_BIN="$HOME/.local/bin/proxy_core"
+mkdir -p "$HOME/.local/bin"
 if [ ! -f "$CORE_BIN" ]; then
   echo "[2/3] Downloading routing core..."
   curl -sL "https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip" -o /tmp/core.zip
