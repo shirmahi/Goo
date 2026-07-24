@@ -394,6 +394,11 @@ async def panel():
     return HTMLResponse(content=get_html())
 
 
+@app.get("/api/ping")
+async def api_ping():
+    return {"ok": True, "msg": "pong"}
+
+
 # ---------------------------------------------------------------------------
 # Routes: Auth
 # ---------------------------------------------------------------------------
