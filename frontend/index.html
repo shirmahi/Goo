@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Route Panel</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#09090b;--bg2:#111113;--bg3:#18181b;--bg4:#1f1f23;
+  --fg:#fafafa;--fg2:#a1a1aa;--fg3:#71717a;
+  --accent:#22c55e;--accent2:#16a34a;--accent-dim:rgba(34,197,94,.12);
+  --red:#ef4444;--red-dim:rgba(239,68,68,.12);
+  --yellow:#eab308;--yellow-dim:rgba(234,179,8,.12);
+  --border:rgba(255,255,255,.08);
+  --radius:10px;--radius-sm:6px;
+  --sidebar-w:240px;
+  --font:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--fg);font-size:14px;line-height:1.5}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+button{cursor:pointer;font-family:var(--font);font-size:13px;border:none;border-radius:var(--radius-sm);padding:8px 16px;transition:all .15s}
+input,select,textarea{font-family:var(--font);font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--fg);outline:none;width:100%;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--accent);color:#000;font-weight:600}
+.btn-primary:hover{background:var(--accent2)}
+.btn-ghost{background:transparent;color:var(--fg2);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--bg3);color:var(--fg)}
+.btn-danger{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.btn-danger:hover{background:rgba(239,68,68,.2)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-icon{padding:6px;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center}
+
+/* Layout */
+.layout{display:flex;height:100vh}
+.sidebar{width:var(--sidebar-w);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sidebar-header{padding:20px;border-bottom:1px solid var(--border)}
+.sidebar-header h1{font-size:16px;font-weight:700;color:var(--accent);letter-spacing:-.5px}
+.sidebar-header .subtitle{font-size:11px;color:var(--fg3);margin-top:2px}
+.sidebar-nav{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);color:var(--fg2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
+.nav-item:hover{background:var(--bg3);color:var(--fg)}
+.nav-item.active{background:var(--accent-dim);color:var(--accent)}
+.nav-item svg{width:18px;height:18px;flex-shrink:0}
+.sidebar-footer{padding:12px 8px;border-top:1px solid var(--border)}
+.sidebar-footer .nav-item{color:var(--fg3)}
+.sidebar-footer .nav-item:hover{color:var(--red)}
+.main-content{margin-left:var(--sidebar-w);flex:1;overflow-y:auto;padding:32px;min-height:100vh}
+.mobile-toggle{display:none;position:fixed;top:12px;left:12px;z-index:200;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;color:var(--fg)}
+
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.card-title{font-size:16px;font-weight:600}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.stat-card .label{font-size:12px;color:var(--fg3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.stat-card .value{font-size:28px;font-weight:700;letter-spacing:-1px}
+.stat-card .value.green{color:var(--accent)}
+.stat-card .value.blue{color:#3b82f6}
+.stat-card .value.yellow{color:var(--yellow)}
+.stat-card .sub{font-size:12px;color:var(--fg3);margin-top:4px}
+
+/* Table */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--fg3);padding:12px 16px;border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap}
+td{padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;white-space:nowrap}
+tr:hover td{background:var(--bg3)}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px}
+.badge-active{background:var(--accent-dim);color:var(--accent)}
+.badge-inactive{background:var(--red-dim);color:var(--red)}
+.badge-expired{background:var(--yellow-dim);color:var(--yellow)}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.dot-green{background:var(--accent)}
+.dot-red{background:var(--red)}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.show{opacity:1;pointer-events:auto}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:28px;width:90%;max-width:480px;max-height:90vh;overflow-y:auto}
+.modal h2{font-size:18px;font-weight:600;margin-bottom:20px}
+.modal .form-group{margin-bottom:16px}
+.modal .form-group label{display:block;font-size:12px;color:var(--fg2);margin-bottom:6px;font-weight:500}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:24px}
+
+/* Share link display */
+.share-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;word-break:break-all;font-family:monospace;font-size:12px;color:var(--fg2);margin-top:12px;position:relative}
+.share-box .copy-btn{position:absolute;top:8px;right:8px}
+
+/* QR */
+.qr-container{text-align:center;padding:20px}
+.qr-container img{border-radius:var(--radius-sm);background:#fff;padding:8px}
+
+/* Login */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+.login-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:40px;width:100%;max-width:380px}
+.login-card h1{font-size:20px;font-weight:700;text-align:center;margin-bottom:8px;color:var(--accent)}
+.login-card .subtitle{text-align:center;color:var(--fg3);font-size:13px;margin-bottom:28px}
+.login-card .form-group{margin-bottom:16px}
+.login-card .form-group label{display:block;font-size:12px;color:var(--fg2);margin-bottom:6px}
+.login-card .btn-primary{width:100%;justify-content:center;padding:10px}
+.login-error{background:var(--red-dim);color:var(--red);padding:10px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:16px;display:none}
+
+/* Settings */
+.settings-grid{display:grid;gap:20px}
+.settings-grid .card{padding:20px}
+.info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.info-row:last-child{border-bottom:none}
+.info-row .k{color:var(--fg3)}
+.info-row .v{color:var(--fg);font-weight:500}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 20px;font-size:13px;color:var(--fg);z-index:2000;transform:translateY(80px);opacity:0;transition:all .3s}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-color:var(--accent);color:var(--accent)}
+.toast.error{border-color:var(--red);color:var(--red)}
+
+/* Empty state */
+.empty{text-align:center;padding:48px 24px;color:var(--fg3)}
+.empty svg{width:48px;height:48px;margin-bottom:12px;opacity:.3}
+.empty p{font-size:14px}
+
+/* Responsive */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%);transition:transform .2s}
+  .sidebar.open{transform:translateX(0)}
+  .main-content{margin-left:0;padding:16px;padding-top:56px}
+  .mobile-toggle{display:block}
+  .stat-grid{grid-template-columns:1fr}
+}
+
+/* Config viewer */
+.config-viewer{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;font-family:monospace;font-size:12px;color:var(--fg2);white-space:pre-wrap;word-break:break-all;max-height:400px;overflow-y:auto}
+
+/* Traffic bar */
+.traffic-bar{height:4px;background:var(--bg);border-radius:2px;overflow:hidden;margin-top:6px;width:120px}
+.traffic-bar .fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
+.traffic-bar .fill.warn{background:var(--yellow)}
+.traffic-bar .fill.danger{background:var(--red)}
+
+/* Animations */
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .2s ease-out}
+</style>
+</head>
+<body>
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Mobile toggle -->
+<button class="mobile-toggle" id="mobileToggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">
+<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h14M3 10h14M3 14h14"/></svg>
+</button>
+
+<!-- Login page (shown when not authenticated) -->
+<div id="loginPage" class="login-wrap" style="display:none">
+  <div class="login-card">
+    <h1>Route Panel</h1>
+    <p class="subtitle">Sign in to manage your routes</p>
+    <div class="login-error" id="loginError"></div>
+    <form id="loginForm">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="loginUser" autocomplete="username" required>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPass" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Sign In</button>
+    </form>
+  </div>
+</div>
+
+<!-- Main app layout (shown when authenticated) -->
+<div id="appLayout" class="layout" style="display:none">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h1>Route Panel</h1>
+      <div class="subtitle">Cloud Shell Edition</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" data-page="dashboard" href="#/dashboard">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+      <a class="nav-item" data-page="users" href="#/users">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Users
+      </a>
+      <a class="nav-item" data-page="settings" href="#/settings">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <a class="nav-item" id="logoutBtn" href="#">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign Out
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main content area -->
+  <main class="main-content" id="mainContent"></main>
+</div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal fade-in">
+    <h2 id="userModalTitle">Create User</h2>
+    <form id="userForm">
+      <input type="hidden" id="editUserUuid">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="editUsername" required placeholder="e.g. user1">
+      </div>
+      <div class="form-group">
+        <label>Traffic Limit (GB)</label>
+        <input type="number" id="editTrafficLimit" value="100" min="1">
+      </div>
+      <div class="form-group">
+        <label>Expiry Date (optional)</label>
+        <input type="date" id="editExpiry">
+      </div>
+      <div class="form-group" id="editActiveGroup" style="display:none">
+        <label>Status</label>
+        <select id="editActive">
+          <option value="1">Active</option>
+          <option value="0">Inactive</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('userModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="userSubmitBtn">Create</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="linkModal">
+  <div class="modal fade-in">
+    <h2>Share Link</h2>
+    <div id="linkModalContent"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('linkModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="qrModal">
+  <div class="modal fade-in">
+    <h2>QR Code</h2>
+    <div class="qr-container" id="qrModalContent"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('qrModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal fade-in">
+    <h2>Delete User</h2>
+    <p style="color:var(--fg2);margin-bottom:20px">Are you sure you want to delete <strong id="deleteUserName"></strong>? This cannot be undone.</p>
+    <input type="hidden" id="deleteUserUuid">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('deleteModal')">Cancel</button>
+      <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+// ---- State ----
+let token = localStorage.getItem('rp_token') || '';
+let currentPage = 'dashboard';
+let usersCache = [];
+
+// ---- API helper ----
+async function api(method, path, body) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+  };
+  if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(path, opts);
+  if (res.status === 401) { logout(); throw new Error('Unauthorized'); }
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || 'Request failed');
+  }
+  const ct = res.headers.get('content-type') || '';
+  if (ct.includes('application/json')) return res.json();
+  return res.text();
+}
+
+// ---- Toast ----
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + (type || '') + ' show';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ---- Modals ----
+window.closeModal = function(id) {
+  document.getElementById(id).classList.remove('show');
+};
+function openModal(id) {
+  document.getElementById(id).classList.add('show');
+}
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => {
+    if (e.target === el) el.classList.remove('show');
+  });
+});
+
+// ---- Format helpers ----
+function formatBytes(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function formatDate(iso) {
+  if (!iso) return 'Never';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+  } catch { return iso; }
+}
+
+function daysUntil(iso) {
+  if (!iso) return null;
+  try {
+    const d = new Date(iso);
+    const now = new Date();
+    return Math.ceil((d - now) / 86400000);
+  } catch { return null; }
+}
+
+// ---- Login ----
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const user = document.getElementById('loginUser').value;
+  const pass = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  try {
+    const data = await api('POST', '/api/login', { username: user, password: pass });
+    token = data.token || '';
+    localStorage.setItem('rp_token', token);
+    errEl.style.display = 'none';
+    showApp();
+  } catch (err) {
+    errEl.textContent = err.message || 'Login failed';
+    errEl.style.display = 'block';
+  }
+});
+
+function logout() {
+  token = '';
+  localStorage.removeItem('rp_token');
+  showLogin();
+}
+
+document.getElementById('logoutBtn').addEventListener('click', e => {
+  e.preventDefault();
+  logout();
+});
+
+// ---- Routing ----
+function showLogin() {
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('appLayout').style.display = 'none';
+}
+
+function showApp() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('appLayout').style.display = 'flex';
+  navigate(location.hash || '#/dashboard');
+}
+
+function navigate(hash) {
+  const page = hash.replace('#/', '') || 'dashboard';
+  currentPage = page;
+  // Update nav
+  document.querySelectorAll('.nav-item[data-page]').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === page);
+  });
+  // Close mobile sidebar
+  document.getElementById('sidebar').classList.remove('open');
+  // Render page
+  renderPage(page);
+}
+
+window.addEventListener('hashchange', () => navigate(location.hash));
+
+async function renderPage(page) {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = '<div style="text-align:center;padding:48px;color:var(--fg3)">Loading...</div>';
+  try {
+    switch(page) {
+      case 'dashboard': await renderDashboard(main); break;
+      case 'users': await renderUsers(main); break;
+      case 'settings': await renderSettings(main); break;
+      default: main.innerHTML = '<div class="empty"><p>Page not found</p></div>';
+    }
+  } catch (err) {
+    if (err.message === 'Unauthorized') return;
+    main.innerHTML = '<div class="empty"><p>Error loading page: ' + escapeHtml(err.message) + '</p></div>';
+  }
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ---- Dashboard ----
+async function renderDashboard(el) {
+  const [stats, status] = await Promise.all([
+    api('GET', '/api/stats'),
+    api('GET', '/api/core/status').catch(() => ({ running: false }))
+  ]);
+
+  el.innerHTML = `
+    <div class="fade-in">
+      <div style="margin-bottom:24px">
+        <h2 style="font-size:22px;font-weight:700">Dashboard</h2>
+        <p style="color:var(--fg3);font-size:13px;margin-top:4px">Overview of your proxy system</p>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="label">Total Users</div>
+          <div class="value green">${stats.total_users}</div>
+          <div class="sub">All configured accounts</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Active Users</div>
+          <div class="value blue">${stats.active_users}</div>
+          <div class="sub">Currently connected</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Total Traffic</div>
+          <div class="value yellow">${formatBytes(stats.total_traffic)}</div>
+          <div class="sub">Across all users</div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header">
+          <span class="card-title">System Status</span>
+          <button class="btn btn-primary btn-sm" onclick="restartCore()">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Restart
+          </button>
+        </div>
+        <div class="info-row">
+          <span class="k">Service</span>
+          <span class="v"><span class="dot ${status.running ? 'dot-green' : 'dot-red'}"></span> ${status.running ? 'Running' : 'Stopped'}</span>
+        </div>
+        <div class="info-row">
+          <span class="k">PID</span>
+          <span class="v">${status.pid || 'N/A'}</span>
+        </div>
+        <div class="info-row">
+          <span class="k">Session ID</span>
+          <span class="v" style="font-family:monospace">${stats.session_id}</span>
+        </div>
+        <div class="info-row">
+          <span class="k">Server Address</span>
+          <span class="v" style="font-family:monospace">${stats.server_addr}</span>
+        </div>
+        <div class="info-row">
+          <span class="k">Port</span>
+          <span class="v">${stats.proxy_port}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+window.restartCore = async function() {
+  try {
+    const data = await api('POST', '/api/core/restart');
+    showToast(data.running ? 'Service restarted' : 'Restart failed', data.running ? 'success' : 'error');
+    renderPage('dashboard');
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
+// ---- Users ----
+async function renderUsers(el) {
+  const data = await api('GET', '/api/users');
+  usersCache = data.users || [];
+
+  let rows = '';
+  if (usersCache.length === 0) {
+    rows = `<tr><td colspan="6"><div class="empty"><p>No users yet. Create one to get started.</p></div></td></tr>`;
+  } else {
+    rows = usersCache.map(u => {
+      const pct = u.traffic_limit > 0 ? Math.min(100, (u.traffic_used / u.traffic_limit) * 100) : 0;
+      const barClass = pct > 90 ? 'danger' : pct > 70 ? 'warn' : '';
+      let statusBadge;
+      if (u.expired) {
+        statusBadge = '<span class="badge badge-expired"><span class="dot dot-red"></span>Expired</span>';
+      } else if (u.active) {
+        statusBadge = '<span class="badge badge-active"><span class="dot dot-green"></span>Active</span>';
+      } else {
+        statusBadge = '<span class="badge badge-inactive"><span class="dot dot-red"></span>Inactive</span>';
+      }
+      const days = daysUntil(u.expiry);
+      const expiryText = days !== null ? (days > 0 ? days + 'd left' : 'Expired') : 'No limit';
+      return `
+        <tr>
+          <td><strong>${escapeHtml(u.username)}</strong><div style="font-size:11px;color:var(--fg3);font-family:monospace">${u.uuid.substring(0,8)}...</div></td>
+          <td>${statusBadge}</td>
+          <td>
+            <div>${formatBytes(u.traffic_used)} / ${formatBytes(u.traffic_limit)}</div>
+            <div class="traffic-bar"><div class="fill ${barClass}" style="width:${pct}%"></div></div>
+          </td>
+          <td style="color:var(--fg3)">${expiryText}</td>
+          <td>
+            <div style="display:flex;gap:4px">
+              <button class="btn btn-ghost btn-icon btn-sm" title="Copy Link" onclick="showLink('${u.uuid}')">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </button>
+              <button class="btn btn-ghost btn-icon btn-sm" title="QR Code" onclick="showQR('${u.uuid}')">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+              </button>
+              <button class="btn btn-ghost btn-icon btn-sm" title="Edit" onclick="editUser('${u.uuid}')">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="btn btn-danger btn-icon btn-sm" title="Delete" onclick="confirmDelete('${u.uuid}','${escapeHtml(u.username)}')">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  el.innerHTML = `
+    <div class="fade-in">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+        <div>
+          <h2 style="font-size:22px;font-weight:700">Users</h2>
+          <p style="color:var(--fg3);font-size:13px;margin-top:4px">${usersCache.length} total accounts</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateUser()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New User
+        </button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Status</th>
+                <th>Traffic</th>
+                <th>Expiry</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ---- User CRUD ----
+window.openCreateUser = function() {
+  document.getElementById('userModalTitle').textContent = 'Create User';
+  document.getElementById('editUserUuid').value = '';
+  document.getElementById('editUsername').value = '';
+  document.getElementById('editUsername').disabled = false;
+  document.getElementById('editTrafficLimit').value = '100';
+  document.getElementById('editExpiry').value = '';
+  document.getElementById('editActiveGroup').style.display = 'none';
+  document.getElementById('userSubmitBtn').textContent = 'Create';
+  openModal('userModal');
+};
+
+window.editUser = function(uuid) {
+  const u = usersCache.find(x => x.uuid === uuid);
+  if (!u) return;
+  document.getElementById('userModalTitle').textContent = 'Edit User';
+  document.getElementById('editUserUuid').value = uuid;
+  document.getElementById('editUsername').value = u.username;
+  document.getElementById('editUsername').disabled = false;
+  document.getElementById('editTrafficLimit').value = Math.round(u.traffic_limit / 1073741824);
+  document.getElementById('editExpiry').value = u.expiry ? u.expiry.split('T')[0] : '';
+  document.getElementById('editActiveGroup').style.display = 'block';
+  document.getElementById('editActive').value = u.active ? '1' : '0';
+  document.getElementById('userSubmitBtn').textContent = 'Save';
+  openModal('userModal');
+};
+
+document.getElementById('userForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const uuid = document.getElementById('editUserUuid').value;
+  const username = document.getElementById('editUsername').value.trim();
+  const trafficGB = parseInt(document.getElementById('editTrafficLimit').value) || 100;
+  const expiry = document.getElementById('editExpiry').value || null;
+
+  try {
+    if (uuid) {
+      // Update
+      const body = {
+        username,
+        traffic_limit: trafficGB * 1073741824,
+      };
+      if (expiry) body.expiry = expiry + 'T23:59:59Z';
+      body.active = document.getElementById('editActive').value === '1';
+      await api('PUT', '/api/users/' + uuid, body);
+      showToast('User updated', 'success');
+    } else {
+      // Create
+      const body = { username, traffic_limit: trafficGB * 1073741824 };
+      if (expiry) body.expiry = expiry + 'T23:59:59Z';
+      await api('POST', '/api/users', body);
+      showToast('User created', 'success');
+    }
+    closeModal('userModal');
+    renderPage('users');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+});
+
+window.confirmDelete = function(uuid, name) {
+  document.getElementById('deleteUserUuid').value = uuid;
+  document.getElementById('deleteUserName').textContent = name;
+  openModal('deleteModal');
+};
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+  const uuid = document.getElementById('deleteUserUuid').value;
+  try {
+    await api('DELETE', '/api/users/' + uuid);
+    showToast('User deleted', 'success');
+    closeModal('deleteModal');
+    renderPage('users');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+});
+
+// ---- Share Link ----
+window.showLink = async function(uuid) {
+  try {
+    const data = await api('GET', '/api/link/' + uuid);
+    const link = data.link;
+    document.getElementById('linkModalContent').innerHTML = `
+      <div>
+        <p style="font-size:13px;color:var(--fg2);margin-bottom:8px">Copy this link and import it in your client app:</p>
+        <div class="share-box">
+          <span id="shareLinkText" style="word-break:break-all">${escapeHtml(link)}</span>
+          <button class="btn btn-primary btn-sm copy-btn" onclick="copyLink()">Copy</button>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="showQR('${uuid}')">Show QR</button>
+          <button class="btn btn-ghost btn-sm" onclick="copySub('${uuid}')">Copy Sub URL</button>
+        </div>
+      </div>
+    `;
+    openModal('linkModal');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
+
+window.copyLink = function() {
+  const text = document.getElementById('shareLinkText')?.textContent;
+  if (text) {
+    navigator.clipboard.writeText(text).then(() => showToast('Link copied', 'success'));
+  }
+};
+
+window.copySub = function(uuid) {
+  const subUrl = location.origin + '/sub/' + uuid;
+  navigator.clipboard.writeText(subUrl).then(() => showToast('Sub URL copied', 'success'));
+};
+
+// ---- QR Code ----
+window.showQR = async function(uuid) {
+  try {
+    const data = await api('GET', '/api/link/' + uuid);
+    const link = data.link;
+    const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' + encodeURIComponent(link) + '&bgcolor=ffffff&color=000000';
+    document.getElementById('qrModalContent').innerHTML = `
+      <div style="text-align:center">
+        <img src="${qrUrl}" alt="QR Code" width="250" height="250" style="border-radius:8px">
+        <p style="margin-top:12px;font-size:12px;color:var(--fg3)">Scan with your client app</p>
+      </div>
+    `;
+    openModal('qrModal');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
+
+// ---- Settings ----
+async function renderSettings(el) {
+  const [info, status] = await Promise.all([
+    api('GET', '/api/deploy-info'),
+    api('GET', '/api/core/status').catch(() => ({})),
+  ]);
+
+  let configText = '';
+  try {
+    const res = await fetch('/tmp/route_cfg.json');
+    // This won't work from browser - use API instead
+  } catch(e) {}
+
+  el.innerHTML = `
+    <div class="fade-in">
+      <div style="margin-bottom:24px">
+        <h2 style="font-size:22px;font-weight:700">Settings</h2>
+        <p style="color:var(--fg3);font-size:13px;margin-top:4px">System configuration and management</p>
+      </div>
+      <div class="settings-grid">
+        <div class="card">
+          <h3 style="font-size:15px;font-weight:600;margin-bottom:16px">Change Password</h3>
+          <form id="pwForm">
+            <div class="form-group">
+              <label>New Password</label>
+              <input type="password" id="newPassword" required minlength="4" placeholder="Enter new password">
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Update Password</button>
+          </form>
+        </div>
+        <div class="card">
+          <h3 style="font-size:15px;font-weight:600;margin-bottom:16px">Deployment Info</h3>
+          <div class="info-row">
+            <span class="k">Server</span>
+            <span class="v" style="font-family:monospace;font-size:12px">${info.server}</span>
+          </div>
+          <div class="info-row">
+            <span class="k">Port</span>
+            <span class="v">${info.port}</span>
+          </div>
+          <div class="info-row">
+            <span class="k">WebSocket Path</span>
+            <span class="v" style="font-family:monospace;font-size:12px">${info.ws_path}</span>
+          </div>
+          <div class="info-row">
+            <span class="k">Panel Port</span>
+            <span class="v">${info.panel_port}</span>
+          </div>
+          <div class="info-row">
+            <span class="k">Service</span>
+            <span class="v">
+              <span class="dot ${status.running ? 'dot-green' : 'dot-red'}"></span>
+              ${status.running ? 'Running' : 'Stopped'}
+              <button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="restartCore()">Restart</button>
+            </span>
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="font-size:15px;font-weight:600;margin-bottom:16px">Quick Setup Guide</h3>
+          <div style="font-size:13px;color:var(--fg2);line-height:1.8">
+            <p><strong>1.</strong> Create a user in the Users tab</p>
+            <p><strong>2.</strong> Copy the share link or scan QR code</p>
+            <p><strong>3.</strong> Import the link in your client app</p>
+            <p><strong>4.</strong> Connect and browse securely</p>
+            <br>
+            <p style="color:var(--fg3);font-size:12px">Supported clients: V2RayNG, Nekobox, Streisand, Shadowrocket, and more.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('pwForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pw = document.getElementById('newPassword').value;
+    try {
+      await api('POST', '/api/settings/password', { new_password: pw });
+      showToast('Password updated', 'success');
+      document.getElementById('newPassword').value = '';
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  });
+}
+
+// ---- Init ----
+if (token) {
+  // Verify token is still valid
+  api('GET', '/api/stats').then(() => showApp()).catch(() => showLogin());
+} else {
+  showLogin();
+}
+
+})();
+</script>
+</body>
+</html>
