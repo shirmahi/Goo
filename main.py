@@ -404,6 +404,22 @@ async def test_page():
     return HTMLResponse(content=test_path.read_text())
 
 
+@app.get("/auth")
+async def auth_get(user: str = "", pw: str = "", response: Response = None):
+    """GET-based login for Web Preview compatibility"""
+    from fastapi.responses import RedirectResponse
+    stored_hash = await get_admin_hash()
+    admin_user = await get_admin_user()
+    if not stored_hash or not admin_user:
+        return HTMLResponse("<h1>Config not initialized</h1>")
+    if user != admin_user or not bcrypt.checkpw(pw.encode(), stored_hash.encode()):
+        return HTMLResponse("<h1>Invalid credentials</h1>")
+    token = create_session_token()
+    resp = RedirectResponse(url="/", status_code=302)
+    resp.set_cookie("session", token, httponly=True, samesite="lax", max_age=SESSION_TTL)
+    return resp
+
+
 # ---------------------------------------------------------------------------
 # Routes: Auth
 # ---------------------------------------------------------------------------
