@@ -173,41 +173,6 @@ def xray_status():
     return {"running": False, "pid": None}
 
 # ---------------------------------------------------------------------------
-# WebSocket proxy: /ws/* → Xray on port 8081
-# ---------------------------------------------------------------------------
-@app.websocket(f"{WS_PREFIX}/{{path_param:path}}")
-async def ws_proxy(websocket: WebSocket, path_param: str):
-    """Proxy WebSocket connections to Xray for VLESS relay"""
-    await websocket.accept()
-    full_path = f"{WS_PREFIX}/{path_param}"
-    LOG.info("WS proxy: %s", full_path)
-    try:
-        import websockets
-        async with websockets.connect(f"ws://127.0.0.1:{PROXY_PORT}{full_path}") as upstream:
-            async def ws_to_upstream():
-                while True:
-                    data = await websocket.receive_bytes()
-                    await upstream.send(data)
-            async def upstream_to_ws():
-                async for msg in upstream:
-                    if isinstance(msg, bytes):
-                        await websocket.send_bytes(msg)
-                    else:
-                        await websocket.send_text(msg)
-            done, pending = await asyncio.wait(
-                [asyncio.create_task(ws_to_upstream()), asyncio.create_task(upstream_to_ws())],
-                return_when=asyncio.FIRST_COMPLETED
-            )
-            for t in pending:
-                t.cancel()
-    except Exception as e:
-        LOG.error("WS proxy error: %s", e)
-        try:
-            await websocket.close()
-        except Exception:
-            pass
-
-# ---------------------------------------------------------------------------
 # HTML templates
 # ---------------------------------------------------------------------------
 def _css():
@@ -356,6 +321,45 @@ async def _keepalive():
             pass
 
 app = FastAPI(title="Dashboard", lifespan=lifespan)
+
+# ---------------------------------------------------------------------------
+# WebSocket proxy: /ws/* → Xray on port 8081
+# ---------------------------------------------------------------------------
+@app.websocket(f"{WS_PREFIX}/{{path_param:path}}")
+async def ws_proxy(websocket: WebSocket, path_param: str):
+    """Proxy WebSocket connections to Xray for VLESS relay"""
+    await websocket.accept()
+    full_path = f"{WS_PREFIX}/{path_param}"
+    LOG.info("WS proxy: %s", full_path)
+    try:
+        import websockets
+        async with websockets.connect(f"ws://127.0.0.1:{PROXY_PORT}{full_path}") as upstream:
+            async def ws_to_upstream():
+                while True:
+                    data = await websocket.receive_bytes()
+                    await upstream.send(data)
+            async def upstream_to_ws():
+                async for msg in upstream:
+                    if isinstance(msg, bytes):
+                        await websocket.send_bytes(msg)
+                    else:
+                        await websocket.send_text(msg)
+            done, pending = await asyncio.wait(
+                [asyncio.create_task(ws_to_upstream()), asyncio.create_task(upstream_to_ws())],
+                return_when=asyncio.FIRST_COMPLETED
+            )
+            for t in pending:
+                t.cancel()
+    except Exception as e:
+        LOG.error("WS proxy error: %s", e)
+        try:
+            await websocket.close()
+        except Exception:
+            pass
+
+# WebSocket proxy: /ws/* → Xray on port 8081
+
+
 
 # ---------------------------------------------------------------------------
 # Routes: Pages
